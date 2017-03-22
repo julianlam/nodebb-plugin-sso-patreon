@@ -1,0 +1,19 @@
+{
+	"id": "nodebb-plugin-sso-facebook",
+	"name": "NodeBB Facebook SSO",
+	"description": "NodeBB Plugin that allows users to login/register via their Facebook account.",
+	"url": "https://github.com/julianlam/nodebb-plugin-sso-facebook",
+	"library": "./library.js",
+	"templates": "templates",
+	"hooks": [
+		{ "hook": "static:app.load", "method": "init" },
+		{ "hook": "filter:auth.init", "method": "getStrategy" },
+		{ "hook": "filter:auth.list", "method": "getAssociation" },
+		{ "hook": "filter:admin.header.build", "method": "addMenuItem" },
+		{ "hook": "static:user.delete", "method": "deleteUserData" },
+		{ "hook": "filter:register.interstitial", "method": "prepareInterstitial" }
+	],
+	"acpScripts": [
+		"static/lib/admin.js"
+	]
+}
