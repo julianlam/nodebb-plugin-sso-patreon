@@ -6,7 +6,7 @@
 		meta = module.parent.require('./meta'),
 		db = module.parent.require('../src/database'),
 		passport = module.parent.require('passport'),
-		passportFacebook = require('passport-facebook').Strategy,
+		passportPatreon = require('passport-patreon').Strategy,
 		nconf = module.parent.require('nconf'),
 		async = module.parent.require('async'),
 		winston = module.parent.require('winston');
@@ -14,82 +14,79 @@
 	var authenticationController = module.parent.require('./controllers/authentication');
 
 	var constants = Object.freeze({
-		'name': 'Facebook',
+		'name': 'Patreon',
 		'admin': {
-			'route': '/plugins/sso-facebook',
-			'icon': 'fa-facebook-square'
+			'route': '/plugins/sso-patreon',
+			'icon': 'fa-check'
 		}
 	});
 
-	var Facebook = {
+	var Patreon = {
 		settings: undefined
 	};
 
-	Facebook.init = function(params, callback) {
+	Patreon.init = function(params, callback) {
 		function render(req, res) {
-			res.render('admin/plugins/sso-facebook', {});
+			res.render('admin/plugins/sso-patreon', {});
 		}
 
-		params.router.get('/admin/plugins/sso-facebook', params.middleware.admin.buildHeader, render);
-		params.router.get('/api/admin/plugins/sso-facebook', render);
+		params.router.get('/admin/plugins/sso-patreon', params.middleware.admin.buildHeader, render);
+		params.router.get('/api/admin/plugins/sso-patreon', render);
 
 		callback();
 	};
 
-	Facebook.getSettings = function(callback) {
-		if (Facebook.settings) {
+	Patreon.getSettings = function(callback) {
+		if (Patreon.settings) {
 			return callback();
 		}
 
-		meta.settings.get('sso-facebook', function(err, settings) {
-			Facebook.settings = settings;
+		meta.settings.get('sso-patreon', function(err, settings) {
+			Patreon.settings = settings;
 			callback();
 		});
 	}
 
-	Facebook.getStrategy = function(strategies, callback) {
-		if (!Facebook.settings) {
-			return Facebook.getSettings(function() {
-				Facebook.getStrategy(strategies, callback);
+	Patreon.getStrategy = function(strategies, callback) {
+		if (!Patreon.settings) {
+			return Patreon.getSettings(function() {
+				Patreon.getStrategy(strategies, callback);
 			});
 		}
 
 		if (
-			Facebook.settings !== undefined
-			&& Facebook.settings.hasOwnProperty('app_id') && Facebook.settings.app_id
-			&& Facebook.settings.hasOwnProperty('secret') && Facebook.settings.secret
+			Patreon.settings !== undefined
+			&& Patreon.settings.hasOwnProperty('id') && Patreon.settings.id
+			&& Patreon.settings.hasOwnProperty('secret') && Patreon.settings.secret
 		) {
-			passport.use(new passportFacebook({
-				clientID: Facebook.settings.app_id,
-				clientSecret: Facebook.settings.secret,
-				callbackURL: nconf.get('url') + '/auth/facebook/callback',
-				passReqToCallback: true,
-				profileFields: ['id', 'emails', 'name', 'displayName']
+			passport.use(new passportPatreon({
+				clientID: Patreon.settings.id,
+				clientSecret: Patreon.settings.secret,
+				callbackURL: nconf.get('url') + '/auth/patreon/callback',
+				passReqToCallback: true
 			}, function(req, accessToken, refreshToken, profile, done) {
 				if (req.hasOwnProperty('user') && req.user.hasOwnProperty('uid') && req.user.uid > 0) {
-					// Save facebook-specific information to the user
-					user.setUserField(req.user.uid, 'fbid', profile.id);
-					db.setObjectField('fbid:uid', profile.id, req.user.uid);
+					// Save patreon-specific information to the user
+					user.setUserField(req.user.uid, 'patreonid', profile.id);
+					db.setObjectField('patreonid:uid', profile.id, req.user.uid);
 					return done(null, req.user);
 				}
 
 				var email;
-				if (profile._json.hasOwnProperty('email')) {
-					email = profile._json.email;
-				} else {
-					email = (profile.username ? profile.username : profile.id) + '@facebook.com';
+				if (profile && profile._json.attributes.hasOwnProperty('email')) {
+					email = profile._json.attributes.email;
 				}
 
-				Facebook.login(profile.id, profile.displayName, email, 'https://graph.facebook.com/' + profile.id + '/picture?type=large', accessToken, refreshToken, profile, function(err, user) {
+				Patreon.login(profile.id, profile.name, email, profile.avatar, accessToken, refreshToken, profile, function(err, user) {
 					if (err) {
 						return done(err);
 					}
 
 					// Require collection of email
-					if (email.endsWith('@facebook.com')) {
+					if (!email) {
 						req.session.registration = req.session.registration || {};
 						req.session.registration.uid = user.uid;
-						req.session.registration.fbid = profile.id;
+						req.session.registration.patreonid = profile.id;
 					}
 
 					authenticationController.onSuccessfulLogin(req, user.uid, done.bind(null, null, user));
@@ -97,34 +94,33 @@
 			}));
 
 			strategies.push({
-				name: 'facebook',
-				url: '/auth/facebook',
-				callbackURL: '/auth/facebook/callback',
-				icon: constants.admin.icon,
-				scope: 'email, user_friends'
+				name: 'patreon',
+				url: '/auth/patreon',
+				callbackURL: '/auth/patreon/callback',
+				icon: constants.admin.icon
 			});
 		}
 
 		callback(null, strategies);
 	};
 
-	Facebook.getAssociation = function(data, callback) {
-		user.getUserField(data.uid, 'fbid', function(err, fbId) {
+	Patreon.getAssociation = function(data, callback) {
+		user.getUserField(data.uid, 'patreonid', function(err, patreonid) {
 			if (err) {
 				return callback(err, data);
 			}
 
-			if (fbId) {
+			if (patreonid) {
 				data.associations.push({
 					associated: true,
-					url: 'https://facebook.com/' + fbId,
+					url: 'https://patreon.com/' + patreonid,
 					name: constants.name,
 					icon: constants.admin.icon
 				});
 			} else {
 				data.associations.push({
 					associated: false,
-					url: nconf.get('url') + '/auth/facebook',
+					url: nconf.get('url') + '/auth/patreon',
 					name: constants.name,
 					icon: constants.admin.icon
 				});
@@ -134,17 +130,17 @@
 		})
 	};
 
-	Facebook.prepareInterstitial = function(data, callback) {
+	Patreon.prepareInterstitial = function(data, callback) {
 		// Only execute if:
-		//   - uid and fbid are set in session
-		//   - email ends with "@facebook.com"
-		if (data.userData.hasOwnProperty('uid') && data.userData.hasOwnProperty('fbid')) {
+		//   - uid and patreonid are set in session
+		//   - user has no email
+		if (data.userData.hasOwnProperty('uid') && data.userData.hasOwnProperty('patreonid')) {
 			user.getUserField(data.userData.uid, 'email', function(err, email) {
-				if (email && email.endsWith('@facebook.com')) {
+				if (!email) {
 					data.interstitials.push({
-						template: 'partials/sso-facebook/email.tpl',
+						template: 'partials/sso-patreon/email.tpl',
 						data: {},
-						callback: Facebook.storeAdditionalData
+						callback: Patreon.storeAdditionalData
 					});
 				}
 
@@ -155,7 +151,7 @@
 		}
 	};
 
-	Facebook.storeAdditionalData = function(userData, data, callback) {
+	Patreon.storeAdditionalData = function(userData, data, callback) {
 		async.waterfall([
 			// Reset email confirm throttle
 			async.apply(db.delete, 'uid:' + userData.uid + ':confirm:email:sent'),
@@ -169,18 +165,15 @@
 		], callback);
 	};
 
-	Facebook.storeTokens = function(uid, accessToken, refreshToken) {
-		//JG: Actually save the useful stuff
-		winston.verbose("Storing received fb access information for uid(" + uid + ") accessToken(" + accessToken + ") refreshToken(" + refreshToken + ")");
-		user.setUserField(uid, 'fbaccesstoken', accessToken);
-		user.setUserField(uid, 'fbrefreshtoken', refreshToken);
-	};
+	// Patreon.storeTokens = function(uid, accessToken, refreshToken) {
+	// 	//JG: Actually save the useful stuff
+	// 	winston.verbose("Storing received fb access information for uid(" + uid + ") accessToken(" + accessToken + ") refreshToken(" + refreshToken + ")");
+	// 	user.setUserField(uid, 'fbaccesstoken', accessToken);
+	// 	user.setUserField(uid, 'fbrefreshtoken', refreshToken);
+	// };
 
-	Facebook.login = function(fbid, name, email, picture, accessToken, refreshToken, profile, callback) {
-
-		winston.verbose("Facebook.login fbid, name, email, picture: " + fbid + ", " + name + ", " + email + ", " + picture);
-
-		Facebook.getUidByFbid(fbid, function(err, uid) {
+	Patreon.login = function(patreonid, name, email, picture, accessToken, refreshToken, profile, callback) {
+		Patreon.getUidByPatreonid(patreonid, function(err, uid) {
 			if(err) {
 				return callback(err);
 			}
@@ -188,7 +181,7 @@
 			if (uid !== null) {
 				// Existing User
 
-				Facebook.storeTokens(uid, accessToken, refreshToken);
+				// Patreon.storeTokens(uid, accessToken, refreshToken);
 
 				callback(null, {
 					uid: uid
@@ -196,10 +189,10 @@
 			} else {
 				// New User
 				var success = function(uid) {
-					// Save facebook-specific information to the user
-					user.setUserField(uid, 'fbid', fbid);
-					db.setObjectField('fbid:uid', fbid, uid);
-					var autoConfirm = Facebook.settings && Facebook.settings.autoconfirm === "on" ? 1: 0;
+					// Save patreon-specific information to the user
+					user.setUserField(uid, 'patreonid', patreonid);
+					db.setObjectField('patreonid:uid', patreonid, uid);
+					var autoConfirm = Patreon.settings && Patreon.settings.autoconfirm === "on" ? 1: 0;
 					user.setUserField(uid, 'email:confirmed', autoConfirm);
 
 					if (autoConfirm) {
@@ -212,7 +205,7 @@
 						user.setUserField(uid, 'picture', picture);
 					}
 
-					Facebook.storeTokens(uid, accessToken, refreshToken);
+					// Patreon.storeTokens(uid, accessToken, refreshToken);
 
 					callback(null, {
 						uid: uid
@@ -225,7 +218,7 @@
 					}
 
 					if (!uid) {
-						user.create({username: name, email: email}, function(err, uid) {
+						user.create({ username: name, email: email, fullname: profile._json.attributes.full_name }, function(err, uid) {
 							if(err) {
 								return callback(err);
 							}
@@ -240,8 +233,8 @@
 		});
 	};
 
-	Facebook.getUidByFbid = function(fbid, callback) {
-		db.getObjectField('fbid:uid', fbid, function(err, uid) {
+	Patreon.getUidByPatreonid = function(patreonid, callback) {
+		db.getObjectField('patreonid:uid', patreonid, function(err, uid) {
 			if (err) {
 				return callback(err);
 			}
@@ -249,7 +242,7 @@
 		});
 	};
 
-	Facebook.addMenuItem = function(custom_header, callback) {
+	Patreon.addMenuItem = function(custom_header, callback) {
 		custom_header.authentication.push({
 			'route': constants.admin.route,
 			'icon': constants.admin.icon,
@@ -259,22 +252,22 @@
 		callback(null, custom_header);
 	};
 
-	Facebook.deleteUserData = function(data, callback) {
+	Patreon.deleteUserData = function(data, callback) {
 		var uid = data.uid;
 
 		async.waterfall([
-			async.apply(user.getUserField, uid, 'fbid'),
+			async.apply(user.getUserField, uid, 'patreonid'),
 			function(oAuthIdToDelete, next) {
-				db.deleteObjectField('fbid:uid', oAuthIdToDelete, next);
+				db.deleteObjectField('patreonid:uid', oAuthIdToDelete, next);
 			}
 		], function(err) {
 			if (err) {
-				winston.error('[sso-facebook] Could not remove OAuthId data for uid ' + uid + '. Error: ' + err);
+				winston.error('[sso-patreon] Could not remove OAuthId data for uid ' + uid + '. Error: ' + err);
 				return callback(err);
 			}
 			callback(null, uid);
 		});
 	};
 
-	module.exports = Facebook;
+	module.exports = Patreon;
 }(module));

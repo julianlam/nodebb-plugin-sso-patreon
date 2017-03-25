@@ -1,20 +1,19 @@
 <div class="row">
 	<div class="col-xs-12">
 		<div class="panel panel-default">
-			<div class="panel-heading">Facebook Social Authentication</div>
+			<div class="panel-heading">Patreon Social Authentication</div>
 			<div class="panel-body">
 				<p>
-					Create a <strong>Facebook Application</strong> via the
-					<a href="https://developers.facebook.com/apps/">Facebook Developers Page</a> and
+					Create a <strong>Patreon OAuth2 Application</strong> and
 					then paste your application details here.
 				</p>
-				<form role="form" class="sso-facebook-settings">
+				<form role="form" class="sso-patreon-settings">
 					<div class="form-group">
-						<label for="app_id">Application ID</label>
-						<input type="text" id="app_id" name="app_id" title="Application ID" class="form-control" placeholder="Application ID"><br />
+						<label for="id">Client ID</label>
+						<input type="text" id="id" name="id" title="Client ID" class="form-control" placeholder="Client ID"><br />
 					</div>
 					<div class="form-group">
-						<label for="secret">Secret</label>
+						<label for="secret">Client Secret</label>
 						<input type="text" id="secret" name="secret" title="Secret" class="form-control" placeholder="Secret">
 					</div>
 					<div class="checkbox">

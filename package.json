@@ -1,16 +1,16 @@
 {
-  "name": "nodebb-plugin-sso-facebook",
+  "name": "nodebb-plugin-sso-patreon",
   "version": "3.0.7",
-  "description": "NodeBB Facebook SSO",
+  "description": "NodeBB Patreon SSO",
   "main": "library.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/julianlam/nodebb-plugin-sso-facebook"
+    "url": "https://github.com/julianlam/nodebb-plugin-sso-patreon"
   },
   "keywords": [
     "nodebb",
     "plugin",
-    "facebook",
+    "patreon",
     "sso",
     "single sign on",
     "registration"
@@ -21,12 +21,12 @@
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/julianlam/nodebb-plugin-sso-facebook/issues"
+    "url": "https://github.com/julianlam/nodebb-plugin-sso-patreon/issues"
   },
   "readme": "",
   "readmeFilename": "README.md",
   "dependencies": {
-    "passport-facebook": "~1.0.2"
+    "passport-patreon": "^1.0.1"
   },
   "nbbpm": {
     "compatibility": "^1.1.x"
