@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-sso-patreon",
-  "version": "3.0.7",
+  "version": "0.0.0",
   "description": "NodeBB Patreon SSO",
   "main": "library.js",
   "repository": {
