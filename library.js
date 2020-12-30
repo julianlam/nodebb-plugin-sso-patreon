@@ -17,7 +17,7 @@
 		'name': 'Patreon',
 		'admin': {
 			'route': '/plugins/sso-patreon',
-			'icon': 'fa-check'
+			'icon': 'fa-patreon'
 		}
 	});
 
