@@ -29,6 +29,6 @@
     "passport-patreon": "^1.0.1"
   },
   "nbbpm": {
-    "compatibility": "^1.1.x"
+    "compatibility": "^1.1.x || ^2.0.0"
   }
 }
