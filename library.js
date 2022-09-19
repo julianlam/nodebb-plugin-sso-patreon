@@ -2,22 +2,22 @@
 	'use strict';
 	/* globals module, require */
 
-	var user = module.parent.require('./user'),
-		meta = module.parent.require('./meta'),
-		db = module.parent.require('../src/database'),
+	var user = require.main.require('./src/user'),
+		meta = require.main.require('./src/meta'),
+		db = require.main.require('./src/database'),
 		passport = module.parent.require('passport'),
 		passportPatreon = require('passport-patreon').Strategy,
 		nconf = module.parent.require('nconf'),
 		async = module.parent.require('async'),
 		winston = module.parent.require('winston');
 
-	var authenticationController = module.parent.require('./controllers/authentication');
+	var authenticationController = require.main.require('./src/controllers/authentication');
 
 	var constants = Object.freeze({
 		'name': 'Patreon',
 		'admin': {
 			'route': '/plugins/sso-patreon',
-			'icon': 'fa-check'
+			'icon': 'fa-patreon'
 		}
 	});
 
